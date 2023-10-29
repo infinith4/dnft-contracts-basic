@@ -9,6 +9,7 @@ import "@openzeppelin/contracts@4.8.0/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts@4.8.0/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts@4.8.0/access/Ownable.sol";
 import "@openzeppelin/contracts@4.8.0/utils/Counters.sol";
+import "@openzeppelin/contracts@4.8.0/utils/Strings.sol";
 
 
 /// @title 時間と共に進化するNFT
@@ -52,6 +53,24 @@ contract TimeGrowStagedNFT is ERC721, ERC721URIStorage, Ownable
     function _baseURI() internal pure override returns (string memory){
         return "ipfs://bafybeiesvt4kfmo5k527xw6pnahdishwe2z7usjarwmwhnewlgd4gzdnii";
     }
+
+    function growNFT(uint targetId_) public {
+        /// 今のstage
+        Stages curStage = tokenStage[targetId_];
+        /// 次のStageを設定
+        uint nextStage = uint(curStage) + 1;
+        /// enum で指定している範囲を越えなければtokenURI を変更しEventを発行
+        require(nextStage <= uint(type(Stages).max), "over stage");
+        /// metaFileの決定
+        string memory metaFile = string.concat("metadata", Strings.toString(nextStage + 1), ".json");
+        /// tokenURIの変更
+        _setTokenURI(targetId_, metaFile);
+        tokenStage[targetId_] = Stages(nextStage);
+
+        /// tokenURI を設定
+        emit UpdateTokenURI(msg.sender, targetId_, metaFile);
+    }
+
     /// @dev stage 設定
     enum Stages {Baby, Child, Youth, Adult, Grandpa}
 
