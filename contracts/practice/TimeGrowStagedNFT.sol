@@ -32,14 +32,28 @@ contract TimeGrowStagedNFT is ERC721, ERC721URIStorage, Ownable
     string public startFile = "metadata1.json";
 
     event UpdateTokenURI(address indexed sender, uint256 indexed tokenId, string uri);
-    
+
+    /// @dev NFT mint 初期StageとURIは固定
+    function nftMint() public onlyOwner {
+        /// tokeIdを1増やす。tokenIdは１から始まる
+        _tokenIdCounter.increment();
+        uint256 tokenId = _tokenIdCounter.current();
+        /// NFT mint 
+        _safeMint(msg.sender, tokenId);
+        /// tokenURI を設定
+        _setTokenURI(tokenId, startFile);
+        /// tokenURI を設定
+        emit UpdateTokenURI(msg.sender, tokenId, startFile);
+        //tokenId毎に成長ステップを記録
+        tokenStage[tokenId] = firstStage;
+    }
     constructor() ERC721("TimeGrowStagedNFT", "TGS") {}
 
     function _baseURI() internal pure override returns (string memory){
         return "ipfs://bafybeiesvt4kfmo5k527xw6pnahdishwe2z7usjarwmwhnewlgd4gzdnii";
     }
     /// @dev stage 設定
-    enum Stages {Baby, Child, Youth, Adult, Grandpa};
+    enum Stages {Baby, Child, Youth, Adult, Grandpa}
 
     /// @dev solve override. Complile Error
     function _burn(uint256 tokenId) internal override (ERC721, ERC721URIStorage) {
