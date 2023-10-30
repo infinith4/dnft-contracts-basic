@@ -53,7 +53,8 @@ contract EventGrowStagedNFT is ERC721, ERC721URIStorage, Ownable, AutomationComp
     uint public lastTimeStamp;
 
     /// 更新間隔を決める変数
-    uint public interval
+    uint public interval;
+    
     constructor(uint interval_) ERC721("EventGrowStagedNFT", "EGS") {
         interval = interval_;
         lastTimeStamp = block.timestamp;
@@ -67,7 +68,7 @@ contract EventGrowStagedNFT is ERC721, ERC721URIStorage, Ownable, AutomationComp
     }
 
     function performUpkeep(bytes calldata performData) external{
-        
+
     }
 
     function _baseURI() internal pure override returns (string memory){
