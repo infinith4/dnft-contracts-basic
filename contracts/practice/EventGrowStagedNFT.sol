@@ -54,16 +54,23 @@ contract EventGrowStagedNFT is ERC721, ERC721URIStorage, Ownable, AutomationComp
 
     /// 更新間隔を決める変数
     uint public interval;
-    
+
     constructor(uint interval_) ERC721("EventGrowStagedNFT", "EGS") {
         interval = interval_;
         lastTimeStamp = block.timestamp;
     }
 
+    /// checkUpkeep() にわたすcheckData(bytes 型)を取得
+    function getCheckData(uint tokenId_) public pure returns (bytes memory){
+        return abi.encode(tokenId_);
+    }
+
+    /// checkData には getCheckData()で得られたBytes型を指定
     function checkUpkeep(bytes calldata checkData) 
-    external 
-    view 
-    returns (bool upkeepNeeded, bytes memory performData) {
+        external 
+        view 
+        returns (bool upkeepNeeded, bytes memory performData) {
+            uint targetId = abi.decode(checkData, (unit));
 
     }
 
