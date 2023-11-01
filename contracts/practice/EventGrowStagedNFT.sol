@@ -92,25 +92,38 @@ contract EventGrowStagedNFT is ERC721, ERC721URIStorage, Ownable, AutomationComp
     }
 
     function performUpkeep(bytes calldata performData) external{
+        (uint targetId, uint nextStage) = abi.decode(performData, (uint, uint));
 
+        require(_exists(targetId), "non existent tokenId.");
+
+        uint vNextStage = uint(tokenStage[targetId]) + 1;
+        
+        if(
+            (block.timestamp - lastTimeStamp) >= interval
+            &&
+            nextStage == vNextStage
+            &&
+            nextStage <= uint(type(Stages).max)
+        ){
+            lastTimeStamp = block.timestamp;
+            _growNFT(targetId, nextStage);
+        }
     }
 
     function _baseURI() internal pure override returns (string memory){
         return "ipfs://bafybeiesvt4kfmo5k527xw6pnahdishwe2z7usjarwmwhnewlgd4gzdnii/";
     }
 
-    function growNFT(uint targetId_) public {
+    function _growNFT(uint targetId_, uint nextStage_) internal {
         /// 今のstage
         Stages curStage = tokenStage[targetId_];
-        /// 次のStageを設定
-        uint nextStage = uint(curStage) + 1;
         /// enum で指定している範囲を越えなければtokenURI を変更しEventを発行
-        require(nextStage <= uint(type(Stages).max), "over stage");
+        require(nextStage_ <= uint(type(Stages).max), "over stage");
         /// metaFileの決定
-        string memory metaFile = string.concat("metadata", Strings.toString(nextStage + 1), ".json");
+        string memory metaFile = string.concat("metadata", Strings.toString(nextStage_ + 1), ".json");
         /// tokenURIの変更
         _setTokenURI(targetId_, metaFile);
-        tokenStage[targetId_] = Stages(nextStage);
+        tokenStage[targetId_] = Stages(nextStage_);
 
         /// tokenURI を設定
         emit UpdateTokenURI(msg.sender, targetId_, metaFile);
