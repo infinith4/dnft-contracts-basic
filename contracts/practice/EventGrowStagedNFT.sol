@@ -112,7 +112,7 @@ contract EventGrowStagedNFT is ERC721, ERC721URIStorage, Ownable, AutomationComp
     }
 
     function _baseURI() internal pure override returns (string memory){
-        return "ipfs://bafybeiaswfiglvhwrdhgtoicnevuhikxlkeordggloli6jeupcrr7y2h4q/";
+        return "ipfs://bafybeiai27ucehv7gijzjjhxms5dimq4n5amvjq2kp3varjfujdfsbmxeq/";
     }
 
     function _growNFT(uint targetId_, uint nextStage_) internal {

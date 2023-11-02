@@ -51,7 +51,7 @@ contract TimeGrowStagedNFT is ERC721, ERC721URIStorage, Ownable
     constructor() ERC721("TimeGrowStagedNFT", "TGS") {}
 
     function _baseURI() internal pure override returns (string memory){
-        return "ipfs://bafybeiaswfiglvhwrdhgtoicnevuhikxlkeordggloli6jeupcrr7y2h4q/";
+        return "ipfs://bafybeiai27ucehv7gijzjjhxms5dimq4n5amvjq2kp3varjfujdfsbmxeq/";
     }
 
     function growNFT(uint targetId_) public {
