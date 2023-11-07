@@ -123,4 +123,16 @@ contract AutoWeatherInfo is ChainlinkClient {
         requestParams.units = _units;
         requestIdRequestParams[_requestId] = requestParams;
     }
+    
+    /**
+     * @notice Consumes the data returned by the node job on a particular request.
+     * @param _requestId the request ID for fulfillment.
+     * @param _currentConditionsResult the current weather conditions (encoded as CurrentConditionsResult).
+     */
+    function fulfillCurrentConditions(bytes32 _requestId, bytes memory _currentConditionsResult)
+        public
+        recordChainlinkFulfillment(_requestId)
+    {
+        storeCurrentConditionsResult(_requestId, _currentConditionsResult);
+    }
 }
