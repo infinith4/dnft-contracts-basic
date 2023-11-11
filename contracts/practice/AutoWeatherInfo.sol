@@ -73,8 +73,46 @@ import "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
 contract AutoWeatherInfo is ChainlinkClient {
     /// Chainlink のStruct のRequest型にアタッチ
     using Chainlink for Chainlink.Request;
+    /* ========== CONSUMER STATE VARIABLES ========== */
+    struct RequestParams {
+        uint256 locationKey;
+        string endpoint;
+        string lat;
+        string lon;
+        string units;
+    }
+    struct CurrentConditionsResult {
+        uint256 timestamp;
+        uint24 precipitationPast12Hours;
+        uint24 precipitationPast24Hours;
+        uint24 precipitationPastHour;
+        uint24 pressure;
+        int16 temperature;
+        uint16 windDirectionDegrees;
+        uint16 windSpeed;
+        uint8 precipitationType;
+        uint8 relativeHumidity;
+        uint8 uvIndex;
+        uint8 weatherIcon;
+    }
+    // Maps
+    mapping(bytes32 => CurrentConditionsResult) public requestIdCurrentConditionsResult;
+    mapping(bytes32 => RequestParams) public requestIdRequestParams;
     /// requestId
     bytes32 public requestId;
+    /**
+     * @param _link the LINK token address.
+     * @param _oracle the Operator.sol contract address.
+     */
+    constructor(address _link, address _oracle) {
+        setChainlinkToken(_link);
+        setChainlinkOracle(_oracle);
+    }
+
+    /// Contract 外への天気情報提供用Function
+    function getCurrentConditions(bytes32 requestId_) external view returns (bytes memory){
+        return abi.encode(requestIdCurrentConditionsResult[requestId_]);
+    }
 
     /**
      * @notice Returns the current weather conditions of a location for the given coordinates.
@@ -82,8 +120,6 @@ contract AutoWeatherInfo is ChainlinkClient {
      * coordinates 'locationKey' value is 0 (AccuWeather Locations API does not allow 0 as a location Key).
      * @param _specId the jobID.
      * @param _payment the LINK amount in Juels (i.e. 10^18 aka 1 LINK).
-     * @param _lat the latitude (WGS84 standard, from -90 to 90).
-     * @param _lon the longitude (WGS84 standard, from -180 to 180).
      * @param _units the measurement system ("metric" or "imperial").
      */
     function requestLocationCurrentConditions(
@@ -95,7 +131,7 @@ contract AutoWeatherInfo is ChainlinkClient {
         Chainlink.Request memory req = buildChainlinkRequest(
             _specId,
             address(this),
-            this.fulfillLocationCurrentConditions.selector
+            this.fulfillCurrentConditions.selector
         );
 
         req.add("endpoint", "current-conditions"); // NB: not required if it has been hardcoded in the job spec
@@ -104,9 +140,25 @@ contract AutoWeatherInfo is ChainlinkClient {
 
         requestId = sendChainlinkRequest(req, _payment);
         /// requestId に紐づけて結果を記録
-        storeRequestParams(requestId, _locationKey, "current-conditions", 0, 0, _units);
+        storeRequestParams(requestId, _locationKey, "current-conditions", "0", "0", _units);
+    }
+    
+    /**
+     * @notice Consumes the data returned by the node job on a particular request.
+     * @param _requestId the request ID for fulfillment.
+     * @param _currentConditionsResult the current weather conditions (encoded as CurrentConditionsResult).
+     */
+    function fulfillCurrentConditions(bytes32 _requestId, bytes memory _currentConditionsResult)
+        public
+        ///https://docs.chain.link/any-api/api-reference/#recordchainlinkfulfillment
+        ///コールバックが悪意のある呼び出し元から呼び出されないように保護する
+        recordChainlinkFulfillment(_requestId)
+    {
+        /// requestId に紐づけて結果を記録
+        storeCurrentConditionsResult(_requestId, _currentConditionsResult);
     }
 
+    /* ========== PRIVATE FUNCTIONS ========== */
     function storeRequestParams(
         bytes32 _requestId,
         uint256 _locationKey,
@@ -124,15 +176,23 @@ contract AutoWeatherInfo is ChainlinkClient {
         requestIdRequestParams[_requestId] = requestParams;
     }
     
-    /**
-     * @notice Consumes the data returned by the node job on a particular request.
-     * @param _requestId the request ID for fulfillment.
-     * @param _currentConditionsResult the current weather conditions (encoded as CurrentConditionsResult).
-     */
-    function fulfillCurrentConditions(bytes32 _requestId, bytes memory _currentConditionsResult)
-        public
-        recordChainlinkFulfillment(_requestId)
-    {
-        storeCurrentConditionsResult(_requestId, _currentConditionsResult);
+    function storeCurrentConditionsResult(bytes32 _requestId, bytes memory _currentConditionsResult) private {
+        CurrentConditionsResult memory result = abi.decode(_currentConditionsResult, (CurrentConditionsResult));
+        requestIdCurrentConditionsResult[_requestId] = result;
+    }
+    
+    /* ========== OTHER FUNCTIONS ========== */
+    ///登録したOracleContract アドレスを返す
+    function getOracleAddress() external view returns (address) {
+        return chainlinkOracleAddress();
+    }
+    ///OracleContract アドレスを設定する
+    function setOracle(address _oracle) external {
+        setChainlinkOracle(_oracle);
+    }
+    ///預けているLinkTokenを引き出す
+    function withdrawLink() public {
+        LinkTokenInterface linkToken = LinkTokenInterface(chainlinkTokenAddress());
+        require(linkToken.transfer(msg.sender, linkToken.balanceOf(address(this))), "Unable to transfer");
     }
 }
